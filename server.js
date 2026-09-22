@@ -285,14 +285,11 @@ async function consturctServer(moduleDefs) {
 }
 
 /**
- * Serve the NCM API.
+ * Create the NCM API without opening a listening socket.
  * @param {NcmApiOptions} options
- * @returns {Promise<import('express').Express & ExpressExtension>}
+ * @returns {Promise<import('express').Express>}
  */
-async function serveNcmApi(options) {
-  const port = Number(options.port || process.env.PORT || '3000')
-  const host = options.host || process.env.HOST || ''
-
+async function createNcmApi(options = {}) {
   const checkVersionSubmission =
     options.checkVersion &&
     checkVersion().then(({ npmVersion, ourVersion, status }) => {
@@ -309,9 +306,21 @@ async function serveNcmApi(options) {
     constructServerSubmission,
   ])
 
+  return app
+}
+
+/**
+ * Serve the NCM API.
+ * @param {NcmApiOptions} options
+ * @returns {Promise<import('express').Express & ExpressExtension>}
+ */
+async function serveNcmApi(options = {}) {
+  const port = Number(options.port || process.env.PORT || '3000')
+  const host = options.host || process.env.HOST || ''
+
   /** @type {import('express').Express & ExpressExtension} */
-  const appExt = app
-  appExt.server = app.listen(port, host, () => {
+  const appExt = await createNcmApi(options)
+  appExt.server = appExt.listen(port, host, () => {
     console.log(`server running @ http://${host ? host : 'localhost'}:${port}`)
   })
 
@@ -319,6 +328,7 @@ async function serveNcmApi(options) {
 }
 
 module.exports = {
+  createNcmApi,
   serveNcmApi,
   getModulesDefinitions,
 }
